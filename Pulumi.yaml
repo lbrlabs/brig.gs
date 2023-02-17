@@ -1,0 +1,6 @@
+name: brig.gs
+runtime:
+  name: python
+  options:
+    virtualenv: venv
+description: kutt.it deployment to AWS ECS

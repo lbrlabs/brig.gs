@@ -1,0 +1,10 @@
+config:
+  aws:allowedAccountIds:
+    - 780219548054
+  aws:region: us-west-2
+  brig.gs:google_safe_browsing_api_key:
+    secure: AAABABkrJxHmjD83HHN0nE6wRaODQbbCVLkq5S96u9z4rW+cgNEftcq8Bp4rIfhIWvbjfQslZ9WgWAA/CxUnzwQWi0VwvIM=
+  brig.gs:recaptcha_secret_key:
+    secure: AAABAOTOWpFoGaom3vs64kxgf1qPhxqrAZkChf9QJZBTHsIN7OC1j9XPbGiMgADuIhRn/7Df7DZMB/daR+m2ATPV1+sfaG1X
+  brig.gs:recaptcha_site_key:
+    secure: AAABAAKOUvpMeNp3tpMRVPHOuljNx+yjgJSRkeas9RGETk8PPKd5z0yLsZ69/GaVQVpqpY4/K5th3f9D9oVPbMHOU95BMydO
