@@ -1,5 +1,6 @@
 import pulumi
 import pulumi_aws as aws
+import pulumi_random as random
 from typing import Sequence, Optional, Mapping
 
 
@@ -9,7 +10,7 @@ class PrivateRedisArgs:
         vpc_id: pulumi.Input[str],
         subnet_ids: pulumi.Input[Sequence[pulumi.Input[str]]],
         port: pulumi.Input[int] = 6379,
-        instance_class: pulumi.Input[str] = "cache.t2.micro",
+        instance_class: pulumi.Input[str] = "cache.t4g.micro",
         number_of_nodes: pulumi.Input[int] = 1,
         tags: Optional[pulumi.Input[Mapping[str, pulumi.Input[str]]]] = None,
     ):
@@ -79,6 +80,17 @@ class PrivateRedis(pulumi.ComponentResource):
             opts=pulumi.ResourceOptions(parent=self),
         )
         
+        """
+        we need some randomness in the snapshot so that we don't run into
+        deletion issues
+        """
+        snapshot_identifier = random.RandomString(
+            name,
+            length=4,
+            special=False,
+            opts=pulumi.ResourceOptions(parent=self),
+        )
+        
         self.cluster = aws.elasticache.Cluster(
             f"{name}-redis-cluster",
             engine="redis",
@@ -87,7 +99,9 @@ class PrivateRedis(pulumi.ComponentResource):
             num_cache_nodes=args.number_of_nodes,
             subnet_group_name=self.subnet_group.name,
             security_group_ids=[self.security_group.id],
-            final_snapshot_identifier=f"{name}-redis-final-snapshot",
+            final_snapshot_identifier=pulumi.Output.format(
+                "{0}-{1}-deleted", name, snapshot_identifier.result
+            ),
             tags=args.tags,
             opts=pulumi.ResourceOptions(parent=self),
         )

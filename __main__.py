@@ -2,6 +2,7 @@ import pulumi
 import json
 import pulumi_aws as aws
 import pulumi_random as random
+import pulumi_cloudflare as cloudflare 
 import components.database as database
 import components.elasticache as elasticache
 import components.fargateapp as fargate
@@ -10,17 +11,18 @@ config = pulumi.Config()
 recaptcha_site_key = config.require_secret("recaptcha_site_key")
 recaptcha_secret_key = config.require_secret("recaptcha_secret_key")
 google_safe_browsing_api_key = config.require_secret("google_safe_browsing_api_key")
+org = config.require("org")
 
 stack = pulumi.get_stack()
 
-vpc = pulumi.StackReference(f"jaxxstorm/vpc/{stack}")
+vpc = pulumi.StackReference(f"{org}/aws_vpc/{stack}")
 vpc_id = vpc.require_output("vpc_id")
 subnet_ids = vpc.require_output("private_subnet_ids")
 
-cluster = pulumi.StackReference(f"jaxxstorm/ecs/{stack}")
+cluster = pulumi.StackReference(f"{org}/aws_ecs/{stack}")
 cluster_arn = cluster.get_output("cluster_arn")
 
-loadbalancer = pulumi.StackReference(f"jaxxstorm/loadbalancer/{stack}")
+loadbalancer = pulumi.StackReference(f"{org}/aws_loadbalancer/{stack}")
 target_group_arn = loadbalancer.require_output("target_group_arn")
 address = loadbalancer.require_output("lb_dns_name")
 
@@ -65,7 +67,7 @@ mail_user = aws.iam.User(
 )
 
 aws.iam.UserPolicyAttachment(
-    "kutt-mail-policy-attchment",
+    "kutt-mail-policy-attachment",
     user=mail_user.name,
     policy_arn=aws.iam.ManagedPolicy.AMAZON_SES_FULL_ACCESS,
     opts=pulumi.ResourceOptions(parent=mail_user),
@@ -116,7 +118,7 @@ task_role = aws.iam.Role(
 )
 
 aws.iam.RolePolicyAttachment(
-    "kutt-iam-policy-attchment",
+    "kutt-iam-policy-attachment",
     role=task_role.name,
     policy_arn=aws.iam.ManagedPolicy.AMAZON_ECS_FULL_ACCESS,
     opts=pulumi.ResourceOptions(parent=task_role),
@@ -194,16 +196,8 @@ kutt = fargate.WebApp(
                 "value": "587",
             },
             {
-                "name": "MAIL_DEBUG",
-                "value": "true",
-            },
-            {
                 "name": "MAIL_FROM",
                 "value": "urls@mail.brig.gs",
-            },
-            {
-                "name": "MAIL_LOG",
-                "value": "true",
             },
             {"name": "ADMIN_EMAILS", "value": "lee@leebriggs.co.uk"},
         ],
@@ -245,8 +239,20 @@ secret_policy = aws.iam.Policy(
 )
 
 aws.iam.RolePolicyAttachment(
-    "kutt-secret-policy-attchment",
+    "kutt-secret-policy-attachment",
     role=kutt.task_execution_role.name,
     policy_arn=secret_policy.arn,
     opts=pulumi.ResourceOptions(parent=kutt.task_execution_role),
+)
+
+zone = cloudflare.get_zone_output(name="brig.gs")
+
+cname = cloudflare.record.Record(
+    "web",
+    name="@",
+    zone_id=zone.id,
+    ttl=60,
+    proxied=False,
+    value=address,
+    type="CNAME",
 )

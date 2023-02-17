@@ -132,6 +132,7 @@ class WebApp(pulumi.ComponentResource):
             execution_role_arn=self.task_execution_role.arn,
             task_role_arn=args.task_role_arn,
             requires_compatibilities=["FARGATE"],
+            runtime_platform={"cpuArchitecture": "ARM64", "operatingSystemFamily": "LINUX"},
             container_definitions=pulumi.Output.json_dumps(
                 [
                     {
@@ -170,6 +171,13 @@ class WebApp(pulumi.ComponentResource):
             desired_count=args.desired_container_count,
             launch_type="FARGATE",
             task_definition=self.task_definition.arn,
+            capacity_provider_strategies=[
+                aws.ecs.ServiceCapacityProviderStrategyArgs(
+                    capacity_provider="FARGATE_SPOT",
+                    weight=100,
+                    base=1,
+                )
+            ],
             load_balancers=[
                 aws.ecs.ServiceLoadBalancerArgs(
                     container_name=args.container_name,

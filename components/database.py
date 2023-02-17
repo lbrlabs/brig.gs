@@ -11,11 +11,11 @@ class PrivateDatabaseArgs:
         subnet_ids: pulumi.Input[Sequence[pulumi.Input[str]]],
         db_name: pulumi.Input[str],
         production: bool = False,
-        disk_size: pulumi.Input[int] = 10,
+        disk_size: pulumi.Input[int] = 5,
         engine: pulumi.Input[str] = "postgres",
         port: pulumi.Input[int] = 5432,
         engine_version: pulumi.Input[str] = "13.7",
-        instance_class: pulumi.Input[str] = "db.t3.micro",
+        instance_class: pulumi.Input[str] = "db.t4g.micro",
         username: pulumi.Input[str] = "administrator",
         password: Optional[pulumi.Input[str]] = None,
         tags: Optional[pulumi.Input[Mapping[str, pulumi.Input[str]]]] = None,
@@ -97,7 +97,7 @@ class PrivateDatabase(pulumi.ComponentResource):
         """
         if args.password is None:
             password_result = random.RandomPassword(
-                name, length=16, special=True, override_special="@"
+                name, length=16, special=False, override_special="@"
             )
             password = password_result.result
         else:
@@ -110,6 +110,7 @@ class PrivateDatabase(pulumi.ComponentResource):
         snapshot_identifier = random.RandomString(
             name,
             length=4,
+            special=False,
             opts=pulumi.ResourceOptions(parent=self),
         )
 
@@ -128,7 +129,7 @@ class PrivateDatabase(pulumi.ComponentResource):
             tags=args.tags,
             skip_final_snapshot=False if args.production else True,
             final_snapshot_identifier=pulumi.Output.format(
-                "name-{0}-deleted", snapshot_identifier.result
+                "{0}-{1}-deleted", name, snapshot_identifier.result
             ),
             opts=pulumi.ResourceOptions(parent=self.subnet_group),
         )
