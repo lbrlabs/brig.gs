@@ -169,11 +169,11 @@ class WebApp(pulumi.ComponentResource):
             name,
             cluster=args.cluster_arn,
             desired_count=args.desired_container_count,
-            launch_type="FARGATE",
+            #launch_type="FARGATE",
             task_definition=self.task_definition.arn,
             capacity_provider_strategies=[
                 aws.ecs.ServiceCapacityProviderStrategyArgs(
-                    capacity_provider="FARGATE_SPOT",
+                    capacity_provider="FARGATE",
                     weight=100,
                     base=1,
                 )
