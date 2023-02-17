@@ -2,7 +2,7 @@ import pulumi
 import json
 import pulumi_aws as aws
 import pulumi_random as random
-import pulumi_cloudflare as cloudflare 
+import pulumi_cloudflare as cloudflare
 import components.database as database
 import components.elasticache as elasticache
 import components.fargateapp as fargate
@@ -23,6 +23,7 @@ cluster = pulumi.StackReference(f"{org}/aws_ecs/{stack}")
 cluster_arn = cluster.get_output("cluster_arn")
 
 loadbalancer = pulumi.StackReference(f"{org}/aws_loadbalancer/{stack}")
+lb_arn = loadbalancer.require_output("lb_arn")
 target_group_arn = loadbalancer.require_output("target_group_arn")
 address = loadbalancer.require_output("lb_dns_name")
 
@@ -213,6 +214,31 @@ kutt = fargate.WebApp(
         },
     ),
 )
+
+lb = aws.lb.get_load_balancer_output(arn=lb_arn)
+
+https_listener = aws.lb.get_listener_output(
+    load_balancer_arn=lb.arn,
+    port=443,
+)
+
+rule = aws.lb.ListenerRule(
+    "brig.gs",
+    listener_arn=https_listener.arn,
+    priority=99,
+    actions=[
+        aws.lb.ListenerRuleActionArgs(
+            type="forward",
+            target_group_arn=target_group_arn,
+        )
+    ],
+    conditions=[
+        aws.lb.ListenerRuleConditionArgs(
+            host_header=aws.lb.ListenerRuleConditionHostHeaderArgs(values=["brig.gs"])
+        )
+    ],
+)
+
 
 """
 Allow the task to access the secrets
