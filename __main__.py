@@ -40,6 +40,7 @@ db = database.PrivateDatabase(
             "repo": "jaxxstorm/brig.gs",
             "environment": "production",
             "project": "kutt",
+            "deployed_with": "pulumi-deploy",
         },
     ),
 )
